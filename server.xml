@@ -1,0 +1,98 @@
+<server description="new server">
+
+    <!-- Enable features -->
+    <featureManager onError="IGNORE">
+        <feature>javaee-7.0</feature>
+        <feature>localConnector-1.0</feature>
+    	<feature>wasJmsClient-2.0</feature>	
+		<feature>mdb-3.2</feature>
+	</featureManager>
+
+	
+    <!-- To access this server from a remote client add a host attribute to the following element, e.g. host="*" -->
+    <httpEndpoint httpPort="9080" httpsPort="9443" id="defaultHttpEndpoint"/>
+                  
+    <!-- Automatically expand WAR files and EAR files -->
+    <applicationManager autoExpand="true"/>
+
+
+    <applicationMonitor updateTrigger="mbean"/>
+    
+    	<!--Silnik wiadomości jest składnikiem, działającym wewnątrz serwera, który
+    	 zarządza zasobami wiadomości. Aplikacje są połączone z silnikiem wiadomości 
+    	 podczas wysyłania i odbierania wiadomości. Kiedy została dodana funkcja serwera JMS 1.0 w 
+    	 serwerze.xml, domyślnie uruchamiany jest mechanizm uruchamiania silnika wiadomości, 
+    	 który zawiera kolejkę domyślną (Default.Queue) i domyślną przestrzeń tematu 
+    	 (Default.Topic.Space). Jeśli użytkownik chce utworzyć nową kolejkę lub obszar tematu, 
+    	 musi zostać zdefiniowany nowy element messagingEngine w pliku server.xml -->
+	<messagingEngine>
+		<queue id="QUEUE1">
+		</queue>
+
+		<queue id="MDBREPLYQ">
+		</queue>
+
+		<queue id="MDBQ">
+		</queue>
+
+	</messagingEngine>
+
+	<!-- Profil Liberty obsługuje konfigurowanie i wdrażanie MDB w celu asynchronicznego
+	 konsumowania wiadomości w Liberty Messaging. Zgodnie ze specyfikacją JCA, MDB korzysta z jmsActivationSpec, 
+	 aby współdziałać z usługą Liberty Messaging. Definiuje konfigurację specyfikacji aktywacji JMS, 
+	 wartość ID musi mieć format nazwy aplikacji / nazwy modułu / nazwy bean, gdzie nazwa aplikacji jest 
+	 nazwą wdrożonej aplikacji (na przykład seminar).  -->
+	<jmsActivationSpec id="seminar/SampleMDB">
+		<properties.wasJms destinationRef="jndi/MDBQ"/>
+	</jmsActivationSpec>
+
+
+	<!-- Definiuje jmsTopicConnectionFactory. Aplikacje JMS moga szukac tego polaczenia aby polaczyc sie
+		z messaging engine dzialajacym na tym samym serwerze co aplikacja. 
+		Dostarcza ID klienta, ktore jednoznacznie identyfikuje subskrybenta.  -->
+	<jmsTopicConnectionFactory connectionManagerRef="ConMgr3" jndiName="jmsTCF">
+		<properties.wasJms/>
+	</jmsTopicConnectionFactory>
+
+	<!-- Każda fabryka połączeń jest skojarzona z pulą połączeń. 
+	Pula połączeń zawiera podobne połączenia utworzone dla określonej fabryki połączeń. 
+	Element connectionManager umożliwia definiowanie rozmiaru puli dla każdej z powiązanych fabryk połączeń.
+	 Patrz ConnectionManagerRef w konfiguracji fabryki połączeń. -->
+	<connectionManager id="ConMgr3" maxPoolSize="5"/>
+
+
+	<!-- Definiuje konfigurację tematu JMS. 
+	Element jmsTopic definiuje właściwości, które umożliwiają aplikacji JMS 
+	publikowanie lub subskrybowanie wiadomości do określonego tematu w obszarze tematu. -->
+	<jmsTopic jndiName="jmsTopic">
+		<properties.wasJms topicName="JMS_MY_TOPIC"/>
+	</jmsTopic>
+
+	<!-- Definiuje konfigurację fabryki połączenia kolejkowego JMS. 
+	Aplikacje JMS mogą wyszukiwać tę fabrykę połączeń kolejowych w celu nawiązania połączenia 
+	z dostawcą wiadomości. Zdefiniuj fabrykę połączenia z kolejką, 
+	którą przykładowa aplikacja używa do łączenia się z Liberty Messaging 
+	działającą w tym samym profilu Liberty co aplikacja. -->
+	<jmsQueueConnectionFactory connectionManagerRef="ConMgr6" jndiName="jndi_JMS_QUEUE_CF">
+		<properties.wasJms/>
+	</jmsQueueConnectionFactory>
+	<connectionManager id="ConMgr6" maxPoolSize="5"/>
+
+	<!-- Definiuje konfigurację kolejki JMS. 
+	Element jmsQueue definiuje właściwości, które umożliwia aplikacjom JMS tworzenie
+	lub konsumowanie wiadomości z określonej kolejki. 
+	W tym przypadku aplikacja łączy się z kolejką "QUEUE1" zdefiniowaną w elemencie messagingEngine -->
+	<jmsQueue jndiName="jndi_INPUT_Q">
+		<properties.wasJms queueName="QUEUE1"/>
+	</jmsQueue>
+
+	<jmsQueue id="jndi_REPLY_Q" jndiName="jndi_REPLY_Q">
+		<properties.wasJms queueName="MDBREPLYQ"/>
+	</jmsQueue>
+
+	<jmsQueue id="jndi/MDBQ" jndiName="jndi/MDBQ">
+		<properties.wasJms queueName="MDBQ"/>
+	</jmsQueue>
+
+    <webApplication id="seminar" location="seminar.war" name="seminar"/>
+</server>
